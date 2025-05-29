@@ -1,7 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const nodemailer = require("nodemailer");
+
 const app = express();
+app.use(cors());
+app.use(express.json());
 
 const FILE = './wallets.json';
 if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, '{}');
@@ -9,56 +13,57 @@ if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, '{}');
 function loadWallets() {
   return JSON.parse(fs.readFileSync(FILE));
 }
-
 function saveWallets(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 }
 
-app.use(cors());
-app.use(express.json());
+// ✉️ Stillingar fyrir netpóst
+const transporter = nodemailer.createTransport({
+  host: "mail.privateemail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: "billing@stealthpay.pro",
+    pass: "SETTU_LYKILORÐ_HÉR" // skiptu út fyrir alvöru lykilorð
+  }
+});
 
-// ✅ Þetta bætir við virkni á "/"
 app.get("/", (req, res) => {
   res.send("✅ StealthPay backend virkar!");
 });
 
-app.post('/register', (req, res) => {
-  const { name } = req.body;
-  const walletId = 'burneWallet_' + Math.random().toString(36).substr(2, 6).toUpperCase();
-  const wallets = loadWallets();
-  wallets[walletId] = { name, balance: 0 };
-  saveWallets(wallets);
-  res.json({ walletId, name, balance: 0 });
-});
+// 🟢 Skráning
+app.post("/register", (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "Vantar upplýsingar" });
+  }
 
-app.post('/send', (req, res) => {
-  const { from, to, amount } = req.body;
   const wallets = loadWallets();
-  if (!wallets[from]) return res.status(400).json({ error: "Sendandi fannst ekki" });
-  if (!wallets[to]) return res.status(400).json({ error: "Viðtakandi fannst ekki" });
-  if (wallets[from].balance < amount) return res.status(400).json({ error: "Ekki næg inneign" });
-  wallets[from].balance -= amount;
-  wallets[to].balance += amount;
-  saveWallets(wallets);
-  res.json({ success: true });
-});
 
-app.get('/wallet/:id', (req, res) => {
-  const wallets = loadWallets();
-  const wallet = wallets[req.params.id];
-  if (!wallet) return res.status(404).json({ error: "Veski fannst ekki" });
-  res.json(wallet);
-});
+  // Athuga hvort netfang sé þegar til
+  const exists = Object.values(wallets).find(w => w.email === email);
+  if (exists) return res.status(400).json({ error: "Netfang þegar skráð" });
 
-app.post('/deposit', (req, res) => {
-  const { walletId, amount } = req.body;
-  const wallets = loadWallets();
-  if (!wallets[walletId]) return res.status(404).json({ error: "Veski fannst ekki" });
-  wallets[walletId].balance += amount;
+  const walletId = "burneWallet_" + Math.random().toString(36).substr(2, 6).toUpperCase();
+  wallets[walletId] = { name, email, password, balance: 0 };
   saveWallets(wallets);
-  res.json({ success: true });
+
+  // ✉️ Senda email
+  transporter.sendMail({
+    from: '"StealthPay" <billing@stealthpay.pro>',
+    to: email,
+    subject: "Velkomin(n) í StealthPay",
+    text: `Sæll/Sæl ${name},\n\nTakk fyrir að skrá þig í StealthPay!\n\nVeski: ${walletId}\n\nKveðja,\nStealthPay teymið`
+  }).then(() => {
+    console.log("📨 Email sent to:", email);
+  }).catch((err) => {
+    console.error("❌ Gat ekki sent email:", err.message);
+  });
+
+  res.json({ walletId, name, email });
 });
 
 app.listen(3000, () => {
-  console.log('✅ StealthPay backend running on http://localhost:3000');
+  console.log("🚀 StealthPay keyrir á http://localhost:3000");
 });
