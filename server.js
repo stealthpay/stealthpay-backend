@@ -22,9 +22,7 @@ const transporter = nodemailer.createTransport({
   port: 465,
   secure: true,
   auth: {
-    user: "billing@stealthpay.pro",
-    pass: "aCJU0wYctkCkz4k"
-  }
+    
 });
 
 app.post("/register", async (req, res) => {
