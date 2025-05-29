@@ -5,15 +5,22 @@ const app = express();
 
 const FILE = './wallets.json';
 if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, '{}');
+
 function loadWallets() {
   return JSON.parse(fs.readFileSync(FILE));
 }
+
 function saveWallets(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 }
 
 app.use(cors());
 app.use(express.json());
+
+// ✅ Þetta bætir við virkni á "/"
+app.get("/", (req, res) => {
+  res.send("✅ StealthPay backend virkar!");
+});
 
 app.post('/register', (req, res) => {
   const { name } = req.body;
