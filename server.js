@@ -10,7 +10,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Skráarheiti fyrir vistaðar veski
 const FILE = "./wallets.json";
 if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, "{}");
 
@@ -22,7 +21,6 @@ function saveWallets(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 }
 
-// Netstillingar fyrir email (úr umhverfisbreytum)
 const transporter = nodemailer.createTransport({
   host: "mail.privateemail.com",
   port: 465,
@@ -33,12 +31,10 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Heimaslóð
 app.get("/", (req, res) => {
   res.send("StealthPay backend keyrir ✅");
 });
 
-// Skráning
 app.post("/register", (req, res) => {
   const { name, email, password } = req.body;
 
@@ -46,10 +42,8 @@ app.post("/register", (req, res) => {
     return res.status(400).json({ error: "Vantar nafn, netfang eða lykilorð" });
   }
 
-  // Búa til veski
   const wallet = ethers.Wallet.createRandom();
 
-  // Vista í JSON
   const wallets = loadWallets();
   wallets[email] = {
     name,
@@ -59,23 +53,36 @@ app.post("/register", (req, res) => {
   };
   saveWallets(wallets);
 
-  // Senda email
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: "StealthPay – Nýtt veski",
-    text: `Halló ${name}!\n\nVeskið þitt:\n\nWallet Address: ${wallet.address}\nPrivate Key: ${wallet.privateKey}\n\nVistaðu þetta STRAX.`
+    subject: "Nýtt Burne Veski frá StealthPay 🚀",
+    text: `
+Halló ${name}!
+
+Veskið þitt er tilbúið:
+
+Wallet address:
+${wallet.address}
+
+Private key:
+${wallet.privateKey}
+
+Vistaðu þetta STRAX – þetta birtist aðeins einu sinni.
+
+Með kveðju,
+StealthPay liðið
+`
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      console.error("❌ Villa við sendingu tölvupósts:", error);
+      console.error("❌ Villa við email:", error);
     } else {
-      console.log("📤 Email sent:", info.response);
+      console.log("📨 Email sent:", info.response);
     }
   });
 
-  // Skila svörum til vefviðmótsins
   res.json({
     message: "User registered successfully",
     walletAddress: wallet.address,
@@ -83,7 +90,6 @@ app.post("/register", (req, res) => {
   });
 });
 
-// Keyra server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
