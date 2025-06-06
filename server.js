@@ -2,8 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const nodemailer = require("nodemailer");
+const { ethers } = require("ethers");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
 app.use(cors());
 app.use(express.json());
 
@@ -13,6 +16,7 @@ if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, "{}");
 function loadWallets() {
   return JSON.parse(fs.readFileSync(FILE));
 }
+
 function saveWallets(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 }
@@ -22,39 +26,55 @@ const transporter = nodemailer.createTransport({
   port: 465,
   secure: true,
   auth: {
-    
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
 });
 
-app.post("/register", async (req, res) => {
+app.get("/", (req, res) => {
+  res.send("StealthPay backend is live");
+});
+
+app.post("/register", (req, res) => {
   const { name, email, password } = req.body;
+
   if (!name || !email || !password) {
-    return res.status(400).json({ error: "Vantar upplýsingar" });
+    return res.status(400).json({ error: "Nafn, netfang og lykilorð vantar" });
   }
+
+  const wallet = ethers.Wallet.createRandom();
 
   const wallets = loadWallets();
-  const exists = Object.values(wallets).find(u => u.email === email);
-  if (exists) {
-    return res.status(400).json({ error: "Netfang þegar skráð" });
-  }
-
-  const walletId = "burneWallet_" + Math.random().toString(36).substr(2, 6).toUpperCase();
-  wallets[walletId] = { name, email, password, balance: 0 };
+  wallets[email] = {
+    name,
+    password,
+    walletAddress: wallet.address,
+    privateKey: wallet.privateKey
+  };
   saveWallets(wallets);
 
-  try {
-    await transporter.sendMail({
-      from: '"StealthPay" <billing@stealthpay.pro>',
-      to: email,
-      subject: "Velkomin(n) í StealthPay!",
-      text: `Sæll ${name},\n\nÞú hefur verið skráð/ur inn.\nVeskið þitt er: ${walletId}`
-    });
-  } catch (err) {
-    console.error("Email villa:", err.message);
-  }
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "StealthPay - Veski stofnað",
+    text: `Halló ${name}!\n\nVeskið þitt er tilbúið:\n\nWallet address: ${wallet.address}\nPrivate key: ${wallet.privateKey}\n\nEkki deila þessu með neinum!`
+  };
 
-  res.json({ name, email, walletId });
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error("Email villa:", error);
+    } else {
+      console.log("Sendt email:", info.response);
+    }
+  });
+
+  res.json({
+    message: "Notandi skráður og veski stofnað",
+    walletAddress: wallet.address,
+    privateKey: wallet.privateKey
+  });
 });
 
-app.listen(3000, () => {
-  console.log("✅ StealthPay server keyrir á http://localhost:3000");
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
