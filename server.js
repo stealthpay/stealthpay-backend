@@ -94,6 +94,26 @@ StealthPay liðið
   });
 });
 
+// ✅ Test endpoint til að prófa email sendingu handvirkt
+app.get("/test-email", (req, res) => {
+  const mailOptions = {
+    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER,
+    subject: "🚀 Prófunarsending frá StealthPay",
+    text: `Þessi póstur er sendur beint frá /test-email endpointi. Ef þú sérð þetta – þá virkar email sendingin.`
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error("❌ Villa við test email:", error);
+      res.status(500).send("Villa við email: " + error.message);
+    } else {
+      console.log("📨 Test email sent:", info.response);
+      res.send("✅ Test email sent: " + info.response);
+    }
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
