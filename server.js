@@ -22,21 +22,17 @@ function saveWallets(data) {
 }
 
 const transporter = nodemailer.createTransport({
-  host: "mail.privateemail.com",
-  port: 465,
-  secure: true,
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  authMethod: "PLAIN",
-  tls: {
-    rejectUnauthorized: false
+    user: "8f1133001@smtp-brevo.com",
+    pass: "2k43tvGT68qlfRHN"
   }
 });
 
 app.get("/", (req, res) => {
-  res.send("StealthPay backend keyrir ✅");
+  res.send("StealthPay backend keyrir með Brevo ✅");
 });
 
 app.post("/register", (req, res) => {
@@ -58,9 +54,9 @@ app.post("/register", (req, res) => {
   saveWallets(wallets);
 
   const mailOptions = {
-    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
+    from: `"StealthPay" <8f1133001@smtp-brevo.com>`,
     to: email,
-    subject: "Nýtt Burne Veski frá StealthPay 🚀",
+    subject: "🎉 Nýtt Burne Veski frá StealthPay",
     text: `
 Halló ${name}!
 
@@ -74,7 +70,7 @@ ${wallet.privateKey}
 
 Vistaðu þetta STRAX – þetta birtist aðeins einu sinni.
 
-Með kveðju,
+Kveðja,
 StealthPay liðið
 `
   };
@@ -94,19 +90,19 @@ StealthPay liðið
   });
 });
 
-// ✅ Test endpoint til að prófa email sendingu handvirkt
+// Test route – hægt að prófa email sendingu beint
 app.get("/test-email", (req, res) => {
   const mailOptions = {
-    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_USER,
+    from: `"StealthPay" <8f1133001@smtp-brevo.com>`,
+    to: "8f1133001@smtp-brevo.com",
     subject: "🚀 Prófunarsending frá StealthPay",
-    text: `Þessi póstur er sendur beint frá /test-email endpointi. Ef þú sérð þetta – þá virkar email sendingin.`
+    text: "Þetta er prófunarpóstur. Ef þú sérð þetta – þá virkar sendingin!"
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.error("❌ Villa við test email:", error);
-      res.status(500).send("Villa við email: " + error.message);
+      res.status(500).send("Villa við sendingu: " + error.message);
     } else {
       console.log("📨 Test email sent:", info.response);
       res.send("✅ Test email sent: " + info.response);
