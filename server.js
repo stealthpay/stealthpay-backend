@@ -21,18 +21,18 @@ function saveWallets(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 }
 
+// 🟢 Brevo auth úr einni breytu
+const [user, pass] = process.env.BREVO_AUTH.split(":");
+
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
   port: 587,
   secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
+  auth: { user, pass }
 });
 
 app.get("/", (req, res) => {
-  res.send("✅ StealthPay backend keyrir með Brevo email sendingu.");
+  res.send("✅ StealthPay backend keyrir með Brevo email.");
 });
 
 app.post("/register", (req, res) => {
@@ -54,9 +54,9 @@ app.post("/register", (req, res) => {
   saveWallets(wallets);
 
   const mailOptions = {
-    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
+    from: `"StealthPay" <${user}>`,
     to: email,
-    subject: "🔥 Nýtt Burne Veski",
+    subject: "🎉 Nýtt Burne Veski frá StealthPay",
     text: `
 Halló ${name}!
 
@@ -70,7 +70,8 @@ ${wallet.privateKey}
 
 Vistaðu þetta STRAX – þetta birtist aðeins einu sinni.
 
-StealthPay 🚀
+Kveðja,  
+StealthPay liðið
 `
   };
 
@@ -89,13 +90,12 @@ StealthPay 🚀
   });
 });
 
-// Prófunarsíða
 app.get("/test-email", (req, res) => {
   const mailOptions = {
-    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_USER,
-    subject: "📬 Prófunarpóstur frá /test-email",
-    text: "Ef þú sérð þetta – þá virkar email sending!"
+    from: `"StealthPay" <${user}>`,
+    to: user,
+    subject: "🚀 Prófunarpóstur frá StealthPay",
+    text: "Ef þú sérð þetta – þá virkar email sendingin!"
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
