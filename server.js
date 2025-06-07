@@ -32,7 +32,7 @@ const transporter = nodemailer.createTransport({
 });
 
 app.get("/", (req, res) => {
-  res.send("✅ StealthPay backend keyrir með öruggum póst sendingum í gegnum Brevo.");
+  res.send("✅ StealthPay backend keyrir með Brevo email sendingu.");
 });
 
 app.post("/register", (req, res) => {
@@ -56,7 +56,7 @@ app.post("/register", (req, res) => {
   const mailOptions = {
     from: `"StealthPay" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: "🎉 Nýtt Burne Veski frá StealthPay",
+    subject: "🔥 Nýtt Burne Veski",
     text: `
 Halló ${name}!
 
@@ -70,8 +70,7 @@ ${wallet.privateKey}
 
 Vistaðu þetta STRAX – þetta birtist aðeins einu sinni.
 
-Kveðja,
-StealthPay liðið
+StealthPay 🚀
 `
   };
 
@@ -90,12 +89,13 @@ StealthPay liðið
   });
 });
 
+// Prófunarsíða
 app.get("/test-email", (req, res) => {
   const mailOptions = {
     from: `"StealthPay" <${process.env.EMAIL_USER}>`,
     to: process.env.EMAIL_USER,
-    subject: "🚀 Prófunarsending frá StealthPay",
-    text: "Ef þú sérð þetta – þá virkar tölvupóstsendingin!"
+    subject: "📬 Prófunarpóstur frá /test-email",
+    text: "Ef þú sérð þetta – þá virkar email sending!"
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
