@@ -26,13 +26,13 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: "8f1133001@smtp-brevo.com",
-    pass: "2k43tvGT68qlfRHN"
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
 app.get("/", (req, res) => {
-  res.send("StealthPay backend keyrir með Brevo ✅");
+  res.send("✅ StealthPay backend keyrir með öruggum póst sendingum í gegnum Brevo.");
 });
 
 app.post("/register", (req, res) => {
@@ -54,7 +54,7 @@ app.post("/register", (req, res) => {
   saveWallets(wallets);
 
   const mailOptions = {
-    from: `"StealthPay" <8f1133001@smtp-brevo.com>`,
+    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: "🎉 Nýtt Burne Veski frá StealthPay",
     text: `
@@ -90,13 +90,12 @@ StealthPay liðið
   });
 });
 
-// Test route – hægt að prófa email sendingu beint
 app.get("/test-email", (req, res) => {
   const mailOptions = {
-    from: `"StealthPay" <8f1133001@smtp-brevo.com>`,
-    to: "8f1133001@smtp-brevo.com",
+    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER,
     subject: "🚀 Prófunarsending frá StealthPay",
-    text: "Þetta er prófunarpóstur. Ef þú sérð þetta – þá virkar sendingin!"
+    text: "Ef þú sérð þetta – þá virkar tölvupóstsendingin!"
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
