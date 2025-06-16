@@ -1,116 +1,43 @@
-const express = require("express");
-const cors = require("cors");
-const fs = require("fs");
-const nodemailer = require("nodemailer");
-const { ethers } = require("ethers");
+// server.js eða api/create-checkout-session.js
 
+const express = require("express");
 const app = express();
-const PORT = process.env.PORT || 3000;
+const stripe = require("stripe")("sk_test_51Hxxx...replace_with_your_key");
+const cors = require("cors");
 
 app.use(cors());
 app.use(express.json());
 
-const FILE = "./wallets.json";
-if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, "{}");
+app.post("/create-checkout-session", async (req, res) => {
+  const { amount } = req.body;
 
-function loadWallets() {
-  return JSON.parse(fs.readFileSync(FILE));
-}
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "isk",
+            product_data: {
+              name: "Innborgun í StealthPay",
+            },
+            unit_amount: parseInt(amount) * 100, // ISK með 2 aukastöfum
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: "https://stealthpay.pro/success.html?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "https://stealthpay.pro/cancel.html",
+    });
 
-function saveWallets(data) {
-  fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
-}
-
-// 🟢 SMTP stillingar með EMAIL_USER og EMAIL_PASS
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    res.json({ id: session.id });
+  } catch (error) {
+    console.error("Stripe villa:", error);
+    res.status(500).json({ error: "Villa við að búa til greiðslusession" });
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("✅ StealthPay backend virkar með öruggum póstsendingum.");
-});
-
-app.post("/register", (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "Vantar nafn, netfang eða lykilorð" });
-  }
-
-  const wallet = ethers.Wallet.createRandom();
-
-  const wallets = loadWallets();
-  wallets[email] = {
-    name,
-    password,
-    walletAddress: wallet.address,
-    privateKey: wallet.privateKey
-  };
-  saveWallets(wallets);
-
-  const mailOptions = {
-    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: "🔐 Nýtt Burne Veski",
-    text: `
-Halló ${name}!
-
-Veskið þitt er tilbúið:
-
-Wallet address:
-${wallet.address}
-
-Private key:
-${wallet.privateKey}
-
-Vistaðu þetta STRAX – þetta birtist aðeins einu sinni.
-
-Kveðja,
-StealthPay liðið 🚀
-`
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("❌ Villa við email:", error);
-    } else {
-      console.log("📨 Email sent:", info.response);
-    }
-  });
-
-  res.json({
-    message: "User registered successfully",
-    walletAddress: wallet.address,
-    privateKey: wallet.privateKey
-  });
-});
-
-// Test sending email to self
-app.get("/test-email", (req, res) => {
-  const mailOptions = {
-    from: `"StealthPay" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_USER,
-    subject: "✅ Prófunarpóstur frá /test-email",
-    text: "Ef þú sérð þennan póst – þá virkar sendingin!"
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("❌ Villa við test email:", error);
-      res.status(500).send("Villa við sendingu: " + error.message);
-    } else {
-      console.log("📨 Test email sent:", info.response);
-      res.send("✅ Test email sent: " + info.response);
-    }
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+// Keyra local eða í Render:
+const PORT = process.env.PORT || 4242;
+app.listen(PORT, () => console.log(`🚀 Stripe server keyrir á http://localhost:${PORT}`));
