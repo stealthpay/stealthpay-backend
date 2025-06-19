@@ -1,6 +1,10 @@
-require("dotenv").config();
+// server.js — Stripe test greiðslu backend
+
 const express = require("express");
 const cors = require("cors");
+const dotenv = require("dotenv");
+dotenv.config();
+
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
@@ -9,7 +13,12 @@ const PORT = process.env.PORT || 4242;
 app.use(cors());
 app.use(express.json());
 
-// Stripe Checkout Endpoint
+// Health check
+app.get("/", (req, res) => {
+  res.send("✅ StealthPay Stripe server keyrir!");
+});
+
+// Stripe endpoint
 app.post("/create-checkout-session", async (req, res) => {
   const { amount } = req.body;
 
@@ -21,12 +30,12 @@ app.post("/create-checkout-session", async (req, res) => {
           price_data: {
             currency: "isk",
             product_data: {
-              name: "Greiðsla í StealthPay",
+              name: "Greiðsla í StealthPay"
             },
-            unit_amount: parseInt(amount) * 100,
+            unit_amount: parseInt(amount) * 100
           },
-          quantity: 1,
-        },
+          quantity: 1
+        }
       ],
       mode: "payment",
       success_url: "https://stealthpay.pro/success.html?session_id={CHECKOUT_SESSION_ID}",
@@ -35,16 +44,11 @@ app.post("/create-checkout-session", async (req, res) => {
 
     res.json({ id: session.id });
   } catch (err) {
-    console.error("Stripe villa:", err);
+    console.error("Stripe villa:", err.message);
     res.status(500).json({ error: "Villa við að búa til greiðslu" });
   }
 });
 
-// Test endpoint til að sjá hvort þjónustan keyri
-app.get("/ping", (req, res) => {
-  res.send("pong");
-});
-
 app.listen(PORT, () => {
-  console.log(`🚀 StealthPay Stripe server keyrir á http://localhost:${PORT}`);
+  console.log(`🚀 Stripe server keyrir á http://localhost:${PORT}`);
 });
