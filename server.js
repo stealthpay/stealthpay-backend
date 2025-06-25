@@ -1,54 +1,40 @@
-// server.js — Stripe test greiðslu backend
-
+// server.js – einfalt proxy kerfi fyrir StealthPay
 const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-dotenv.config();
-
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-
 const app = express();
-const PORT = process.env.PORT || 4242;
+const cors = require("cors");
+const { ethers } = require("ethers");
 
 app.use(cors());
 app.use(express.json());
 
-// Health check
-app.get("/", (req, res) => {
-  res.send("✅ StealthPay Stripe server keyrir!");
-});
+const PORT = process.env.PORT || 4242;
 
-// Stripe endpoint
-app.post("/create-checkout-session", async (req, res) => {
-  const { amount } = req.body;
+// Settu inn eigin gögn hér
+const INFURA_URL = "https://polygon-mainnet.infura.io/v3/YOUR_INFURA_KEY";
+const PRIVATE_KEY = "YOUR_PRIVATE_KEY"; // veski A eða proxy veski
+
+const provider = new ethers.JsonRpcProvider(INFURA_URL);
+const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+
+// 👉 API route til að framkvæma færslu
+app.post("/send", async (req, res) => {
+  const { to, amount } = req.body;
+  if (!to || !amount) return res.status(400).send("Villa: vantar 'to' og 'amount'");
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "isk",
-            product_data: {
-              name: "Greiðsla í StealthPay"
-            },
-            unit_amount: parseInt(amount) * 100
-          },
-          quantity: 1
-        }
-      ],
-      mode: "payment",
-      success_url: "https://stealthpay.pro/success.html?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "https://stealthpay.pro/cancel.html"
+    const tx = await signer.sendTransaction({
+      to,
+      value: ethers.parseUnits(amount.toString(), "ether")
     });
 
-    res.json({ id: session.id });
+    console.log("🚀 Færslan send:", tx.hash);
+    res.send({ hash: tx.hash });
   } catch (err) {
-    console.error("Stripe villa:", err.message);
-    res.status(500).json({ error: "Villa við að búa til greiðslu" });
+    console.error("⚠️ Villa við sendingu:", err);
+    res.status(500).send("Færsla mistókst");
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Stripe server keyrir á http://localhost:${PORT}`);
+  console.log(`✅ server.js keyrir á http://localhost:${PORT}`);
 });
